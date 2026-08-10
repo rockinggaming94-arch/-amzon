@@ -8,7 +8,7 @@ from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand, WebAppInfo
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 import database
 import scraper
@@ -621,10 +621,14 @@ def _get_dashboard_url(chat_id):
 
 
 async def _send_dashboard_link(message, chat_id):
-    """Send the dashboard link to a user."""
+    """Send the dashboard link to a user as a Telegram Mini App."""
     url = _get_dashboard_url(chat_id)
+    # Ensure URL is https for Web Apps to work properly
+    if url.startswith("http://") and "localhost" not in url:
+        url = url.replace("http://", "https://")
+        
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🌐 Open Dashboard", url=url)]
+        [InlineKeyboardButton("🌐 Open Dashboard", web_app=WebAppInfo(url=url))]
     ])
     await message.reply_text(
         "🌐 *Your Personal Dashboard*\n\n"
@@ -658,9 +662,11 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         port = os.getenv("PORT", "8080")
         base = f"http://localhost:{port}"
     url = f"{base}/?admin_token={token}"
+    if url.startswith("http://") and "localhost" not in url:
+        url = url.replace("http://", "https://")
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔐 Open Admin Panel", url=url)]
+        [InlineKeyboardButton("🔐 Open Admin Panel", web_app=WebAppInfo(url=url))]
     ])
     await update.message.reply_text(
         "🔐 *Admin Access Granted*\n\n"
