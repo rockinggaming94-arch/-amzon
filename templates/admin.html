@@ -815,6 +815,15 @@
 
 <script>
     // ─── State ────────────────────────────────────────────────────────
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('admin_token');
+    
+    if (urlToken) {
+        localStorage.setItem('admin_token', urlToken);
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
     let authToken = localStorage.getItem('admin_token') || null;
     let refreshTimer = null;
     const REFRESH_INTERVAL = 10000; // 10 seconds

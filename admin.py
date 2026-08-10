@@ -46,7 +46,7 @@ def log_activity(event_type, message, chat_id=None, url=None):
 _valid_tokens = set()
 
 
-def _generate_token():
+def generate_admin_token():
     token = secrets.token_hex(32)
     _valid_tokens.add(token)
     return token
@@ -99,7 +99,7 @@ async def handle_login(request):
 
     password = data.get("password", "")
     if password == ADMIN_PASSWORD:
-        token = _generate_token()
+        token = generate_admin_token()
         resp = web.json_response({"success": True, "token": token})
         resp.set_cookie("admin_token", token, httponly=True, samesite="Strict", max_age=86400)
         return resp

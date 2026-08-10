@@ -20,6 +20,7 @@ load_dotenv()
 # Base URL for the web dashboard (auto-detected on Railway, override with DASHBOARD_URL env var)
 DASHBOARD_BASE_URL = os.getenv("DASHBOARD_URL", "").strip()
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()]
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -641,6 +642,35 @@ async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _send_dashboard_link(update.message, chat_id)
 
 
+# ─── Admin Command ───────────────────────────────────────────────────────────
+
+async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Generate a one-click login link for the admin panel, restricted to ADMIN_IDS."""
+    chat_id = update.effective_chat.id
+    if chat_id not in ADMIN_IDS:
+        await update.message.reply_text("❌ You don't have permission to use this command.")
+        return
+
+    # Generate a fresh token and build the auto-login URL
+    token = admin.generate_admin_token()
+    base = DASHBOARD_BASE_URL
+    if not base:
+        port = os.getenv("PORT", "8080")
+        base = f"http://localhost:{port}"
+    url = f"{base}/?admin_token={token}"
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔐 Open Admin Panel", url=url)]
+    ])
+    await update.message.reply_text(
+        "🔐 *Admin Access Granted*\n\n"
+        "Tap the button below to securely log into the admin dashboard\.\n"
+        "This link will auto\-authenticate you without a password\.",
+        parse_mode="MarkdownV2",
+        reply_markup=keyboard,
+    )
+
+
 # ─── Bot Menu Commands ───────────────────────────────────────────────────────
 
 async def set_bot_commands(application):
@@ -689,6 +719,7 @@ async def run():
     application.add_handler(CommandHandler("check", force_check))
     application.add_handler(CommandHandler("status", status_command))
     application.add_handler(CommandHandler("dashboard", dashboard_command))
+    application.add_handler(CommandHandler("admin", admin_command))
 
     # Register inline button callback handler
     application.add_handler(CallbackQueryHandler(button_callback))
