@@ -693,6 +693,236 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* ─── Toggle Switch ─────────────────────────────────────────── */
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 26px;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-glass);
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: rgba(34,197,94,0.25);
+            border-color: rgba(34,197,94,0.4);
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(22px);
+            background: var(--accent-green);
+            box-shadow: 0 0 8px rgba(34,197,94,0.5);
+        }
+
+        /* ─── Proxy Panel ───────────────────────────────────────────── */
+        .proxy-panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .proxy-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .proxy-header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .proxy-header-left h2 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .proxy-status-badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .proxy-status-badge.on {
+            background: rgba(34,197,94,0.12);
+            color: var(--accent-green);
+            border: 1px solid rgba(34,197,94,0.2);
+        }
+
+        .proxy-status-badge.off {
+            background: rgba(239,68,68,0.12);
+            color: var(--accent-red);
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+
+        .proxy-body {
+            padding: 16px 22px;
+        }
+
+        .proxy-add-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .proxy-add-row input {
+            flex: 1;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .proxy-add-row input:focus {
+            border-color: var(--accent-indigo);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+        }
+
+        .proxy-add-row input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn-add {
+            background: rgba(99,102,241,0.15);
+            color: var(--accent-indigo);
+            border: 1px solid rgba(99,102,241,0.25);
+            padding: 10px 18px;
+            font-size: 0.82rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: var(--font-sans);
+            font-weight: 600;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn-add:hover {
+            background: rgba(99,102,241,0.25);
+        }
+
+        .proxy-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .proxy-list::-webkit-scrollbar { width: 4px; }
+        .proxy-list::-webkit-scrollbar-track { background: transparent; }
+        .proxy-list::-webkit-scrollbar-thumb { background: var(--border-glass); border-radius: 4px; }
+
+        .proxy-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: var(--radius-sm);
+            transition: all 0.15s ease;
+        }
+
+        .proxy-item:hover {
+            background: rgba(255,255,255,0.04);
+            border-color: var(--border-glass);
+        }
+
+        .proxy-item-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .proxy-item-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            flex-shrink: 0;
+        }
+
+        .proxy-empty {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .proxy-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 22px;
+            border-top: 1px solid var(--border-glass);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .btn-clear-proxies {
+            background: rgba(239,68,68,0.08);
+            color: var(--accent-red);
+            border: 1px solid rgba(239,68,68,0.15);
+            padding: 5px 12px;
+            font-size: 0.75rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: var(--font-sans);
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-clear-proxies:hover {
+            background: rgba(239,68,68,0.18);
+        }
     </style>
 </head>
 <body>
@@ -762,8 +992,8 @@
             <div class="stat-card animate-in" style="animation-delay: 0.2s">
                 <span class="stat-icon">🌐</span>
                 <div class="stat-value cyan" id="stat-proxies">--</div>
-                <div class="stat-label">Proxies Active</div>
-                <div class="stat-sub" id="stat-interval">Interval: --</div>
+                <div class="stat-label">Proxies</div>
+                <div class="stat-sub" id="stat-proxy-status">Status: --</div>
             </div>
         </div>
 
@@ -800,12 +1030,44 @@
             </div>
         </div>
 
+        <!-- Proxy Management Panel -->
+        <div class="proxy-panel animate-in" style="animation-delay: 0.32s" id="proxy-panel">
+            <div class="proxy-header">
+                <div class="proxy-header-left">
+                    <h2>🌐 Proxy Management</h2>
+                    <span class="proxy-status-badge off" id="proxy-badge">OFF</span>
+                </div>
+                <label class="toggle-switch" title="Toggle proxies on/off">
+                    <input type="checkbox" id="proxy-toggle" onchange="toggleProxy(this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="proxy-body">
+                <div class="proxy-add-row">
+                    <input type="text" id="proxy-input" placeholder="ip:port:user:pass or http://user:pass@ip:port">
+                    <button class="btn-add" onclick="addProxy()">+ Add</button>
+                </div>
+                <div class="proxy-list" id="proxy-list">
+                    <div class="proxy-empty">Loading proxies...</div>
+                </div>
+            </div>
+            <div class="proxy-footer">
+                <span id="proxy-count-label">0 proxies loaded</span>
+                <button class="btn-clear-proxies" onclick="clearAllProxies()">🗑️ Clear All</button>
+            </div>
+        </div>
+
         <!-- Actions Bar -->
         <div class="actions-bar animate-in" style="animation-delay: 0.35s">
             <span class="action-label">⚙️ Actions</span>
             <button class="btn btn-secondary" onclick="refreshAll()" style="padding:10px 18px; font-size:0.82rem;">
                 🔄 Refresh Data
             </button>
+        </div>
+
+        <!-- Credit Footer -->
+        <div style="text-align:center; padding:24px 0 8px; opacity:0.4; font-size:0.78rem; color:var(--text-muted);">
+            🎮 Made by <span style="font-weight:600; background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Proofy Gamerz</span>
         </div>
     </div>
 </div>
@@ -938,7 +1200,13 @@
             document.getElementById('stat-urls').textContent = data.total_urls;
             document.getElementById('stat-last-check').textContent = `Last check: ${formatTimeAgo(data.last_check_ago)}`;
             document.getElementById('stat-proxies').textContent = data.proxy_count;
-            document.getElementById('stat-interval').textContent = `Interval: ${Math.floor(data.check_interval / 60)}min`;
+
+            // Update proxy status in stat card
+            if (data.proxy_enabled) {
+                document.getElementById('stat-proxy-status').textContent = `✅ Enabled · Every ${Math.floor(data.check_interval / 60)}min`;
+            } else {
+                document.getElementById('stat-proxy-status').textContent = `⚡ Direct IP (no proxy)`;
+            }
         } catch (e) {
             // Silently fail
         }
@@ -1060,7 +1328,7 @@
     async function refreshAll() {
         const indicator = document.getElementById('refresh-indicator');
         indicator.style.display = 'flex';
-        await Promise.all([fetchStats(), fetchUsers(), fetchLogs()]);
+        await Promise.all([fetchStats(), fetchUsers(), fetchLogs(), fetchProxies()]);
         setTimeout(() => { indicator.style.display = 'none'; }, 500);
     }
 
@@ -1112,6 +1380,105 @@
             showLogin();
         }
     })();
+
+    // ─── Proxy Management ────────────────────────────────────────────
+    async function fetchProxies() {
+        try {
+            const data = await api('GET', '/api/proxy');
+            const toggle = document.getElementById('proxy-toggle');
+            const badge = document.getElementById('proxy-badge');
+            const list = document.getElementById('proxy-list');
+            const countLabel = document.getElementById('proxy-count-label');
+
+            // Update toggle
+            toggle.checked = data.enabled;
+            badge.textContent = data.enabled ? 'ON' : 'OFF';
+            badge.className = 'proxy-status-badge ' + (data.enabled ? 'on' : 'off');
+
+            // Update count
+            countLabel.textContent = `${data.count} ${data.count === 1 ? 'proxy' : 'proxies'} loaded`;
+
+            // Update list
+            if (data.proxies.length === 0) {
+                list.innerHTML = '<div class="proxy-empty">⚡ No proxies — using Railway\'s direct IP</div>';
+                return;
+            }
+
+            let html = '';
+            for (const proxy of data.proxies) {
+                html += `
+                    <div class="proxy-item">
+                        <div class="proxy-item-info">
+                            <span class="proxy-item-dot"></span>
+                            <span>${escapeHtml(proxy.display)}</span>
+                        </div>
+                        <button class="btn btn-danger" onclick="removeProxy('${proxy.raw.replace(/'/g, "\\'")}')" title="Remove proxy" style="padding:4px 10px;font-size:0.72rem">✕</button>
+                    </div>`;
+            }
+            list.innerHTML = html;
+        } catch (e) {
+            // Silently fail
+        }
+    }
+
+    async function toggleProxy(enabled) {
+        try {
+            await api('POST', '/api/proxy/toggle', { enabled });
+            showToast(enabled ? '🌐 Proxies enabled' : '⚡ Proxies disabled — using direct IP');
+            fetchProxies();
+            fetchStats();
+        } catch (e) {
+            showToast('Failed to toggle proxies', 'error');
+            fetchProxies();
+        }
+    }
+
+    async function addProxy() {
+        const input = document.getElementById('proxy-input');
+        const value = input.value.trim();
+        if (!value) {
+            showToast('Enter a proxy address', 'error');
+            input.focus();
+            return;
+        }
+        try {
+            await api('POST', '/api/proxy/add', { proxy: value });
+            showToast('✅ Proxy added');
+            input.value = '';
+            fetchProxies();
+            fetchStats();
+        } catch (e) {
+            showToast(e.message || 'Failed to add proxy', 'error');
+        }
+    }
+
+    // Allow Enter key to add proxy
+    document.getElementById('proxy-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addProxy();
+    });
+
+    async function removeProxy(proxyRaw) {
+        try {
+            await api('POST', '/api/proxy/remove', { proxy: proxyRaw });
+            showToast('Proxy removed');
+            fetchProxies();
+            fetchStats();
+        } catch (e) {
+            showToast('Failed to remove proxy', 'error');
+        }
+    }
+
+    async function clearAllProxies() {
+        if (!confirm('Remove ALL proxies? The bot will use Railway\'s direct IP.')) return;
+        try {
+            const data = await api('POST', '/api/proxy/clear');
+            showToast(`🗑️ Cleared ${data.removed} proxies`);
+            fetchProxies();
+            fetchStats();
+        } catch (e) {
+            showToast('Failed to clear proxies', 'error');
+        }
+    }
 </script>
 
 </body>

@@ -74,14 +74,101 @@ def _load_proxy_pool():
     return []
 
 _PROXY_POOL = _load_proxy_pool()
+_PROXIES_ENABLED = True  # Global toggle — admin can turn off to use Railway IP directly
 
 
 def _get_random_proxy():
     """Pick a random proxy from the pool. Returns a proxies dict or None."""
-    if not _PROXY_POOL:
+    if not _PROXIES_ENABLED or not _PROXY_POOL:
         return None
     proxy_url = random.choice(_PROXY_POOL)
     return {"http": proxy_url, "https": proxy_url}
+
+
+# ─── Proxy Management API (called from admin.py) ─────────────────────────────
+
+def get_proxy_status():
+    """Return the current proxy configuration state."""
+    return {
+        "enabled": _PROXIES_ENABLED,
+        "proxies": [
+            _format_proxy_display(p) for p in _PROXY_POOL
+        ],
+        "count": len(_PROXY_POOL),
+    }
+
+
+def _format_proxy_display(proxy_url):
+    """Format a proxy URL for safe display (mask password)."""
+    try:
+        # http://user:pass@ip:port → show ip:port (masked creds)
+        from urllib.parse import urlparse
+        parsed = urlparse(proxy_url)
+        host = parsed.hostname or ''
+        port = parsed.port or ''
+        user = parsed.username or ''
+        masked = f"{host}:{port}"
+        if user:
+            masked = f"{user[:3]}***@{host}:{port}"
+        return {"display": masked, "raw": proxy_url}
+    except Exception:
+        return {"display": proxy_url[:20] + '...', "raw": proxy_url}
+
+
+def set_proxies_enabled(enabled):
+    """Toggle proxy usage on/off globally."""
+    global _PROXIES_ENABLED
+    _PROXIES_ENABLED = bool(enabled)
+    logger.info(f"🌐 Proxies {'ENABLED' if _PROXIES_ENABLED else 'DISABLED (using direct IP)'}")
+    return _PROXIES_ENABLED
+
+
+def add_proxy(proxy_string):
+    """
+    Add a proxy to the pool.
+    Accepts formats: ip:port:user:pass OR http://user:pass@ip:port
+    Returns True if added.
+    """
+    proxy_string = proxy_string.strip()
+    if not proxy_string:
+        return False
+
+    # If already a URL format
+    if proxy_string.startswith('http'):
+        proxy_url = proxy_string
+    else:
+        parts = proxy_string.split(':')
+        if len(parts) == 4:
+            ip, port, user, password = parts
+            proxy_url = f"http://{user}:{password}@{ip}:{port}"
+        elif len(parts) == 2:
+            ip, port = parts
+            proxy_url = f"http://{ip}:{port}"
+        else:
+            return False
+
+    if proxy_url not in _PROXY_POOL:
+        _PROXY_POOL.append(proxy_url)
+        logger.info(f"🌐 Added proxy (pool size: {len(_PROXY_POOL)})")
+        return True
+    return False
+
+
+def remove_proxy(proxy_raw):
+    """Remove a proxy from the pool by its raw URL. Returns True if removed."""
+    if proxy_raw in _PROXY_POOL:
+        _PROXY_POOL.remove(proxy_raw)
+        logger.info(f"🌐 Removed proxy (pool size: {len(_PROXY_POOL)})")
+        return True
+    return False
+
+
+def clear_all_proxies():
+    """Remove all proxies from the pool."""
+    count = len(_PROXY_POOL)
+    _PROXY_POOL.clear()
+    logger.info(f"🌐 Cleared all {count} proxies")
+    return count
 
 
 # Persistent session with connection pooling and automatic retries

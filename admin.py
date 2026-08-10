@@ -10,6 +10,7 @@ from aiohttp import web
 from dotenv import load_dotenv
 
 import database
+import scraper
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -134,6 +135,7 @@ async def handle_stats(request):
     if _shared_state["last_check_time"]:
         last_check_ago = int((now - _shared_state["last_check_time"]).total_seconds())
 
+    proxy_status = scraper.get_proxy_status()
     return web.json_response({
         "status": "running",
         "uptime_seconds": uptime_seconds,
@@ -141,7 +143,8 @@ async def handle_stats(request):
         "total_urls": stats["total_urls"],
         "check_interval": _shared_state["check_interval"],
         "last_check_ago": last_check_ago,
-        "proxy_count": _shared_state["proxy_count"],
+        "proxy_count": proxy_status["count"],
+        "proxy_enabled": proxy_status["enabled"],
     })
 
 
@@ -215,6 +218,75 @@ async def handle_clear_logs(request):
     return web.json_response({"success": True})
 
 
+# ─── Proxy Management Routes ─────────────────────────────────────────────────
+
+async def handle_proxy_status(request):
+    """Return proxy pool status."""
+    if not _verify_token(request):
+        return web.json_response({"error": "Unauthorized"}, status=401)
+    return web.json_response(scraper.get_proxy_status())
+
+
+async def handle_proxy_toggle(request):
+    """Toggle proxies on/off."""
+    if not _verify_token(request):
+        return web.json_response({"error": "Unauthorized"}, status=401)
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    enabled = data.get("enabled", True)
+    result = scraper.set_proxies_enabled(enabled)
+    state_label = "ENABLED" if result else "DISABLED (using Railway IP)"
+    log_activity("info", f"Admin toggled proxies: {state_label}")
+    return web.json_response({"success": True, "enabled": result})
+
+
+async def handle_proxy_add(request):
+    """Add a proxy to the pool."""
+    if not _verify_token(request):
+        return web.json_response({"error": "Unauthorized"}, status=401)
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    proxy_string = data.get("proxy", "").strip()
+    if not proxy_string:
+        return web.json_response({"error": "proxy string required"}, status=400)
+
+    if scraper.add_proxy(proxy_string):
+        log_activity("info", f"Admin added a proxy (pool: {len(scraper._PROXY_POOL)})")
+        return web.json_response({"success": True, "count": len(scraper._PROXY_POOL)})
+    return web.json_response({"error": "Duplicate or invalid proxy"}, status=400)
+
+
+async def handle_proxy_remove(request):
+    """Remove a specific proxy from the pool."""
+    if not _verify_token(request):
+        return web.json_response({"error": "Unauthorized"}, status=401)
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    proxy_raw = data.get("proxy", "")
+    if scraper.remove_proxy(proxy_raw):
+        log_activity("info", f"Admin removed a proxy (pool: {len(scraper._PROXY_POOL)})")
+        return web.json_response({"success": True, "count": len(scraper._PROXY_POOL)})
+    return web.json_response({"error": "Proxy not found"}, status=404)
+
+
+async def handle_proxy_clear(request):
+    """Remove all proxies from the pool."""
+    if not _verify_token(request):
+        return web.json_response({"error": "Unauthorized"}, status=401)
+    count = scraper.clear_all_proxies()
+    log_activity("info", f"Admin cleared all {count} proxies")
+    return web.json_response({"success": True, "removed": count})
+
+
 # ─── User Dashboard Routes ───────────────────────────────────────────────────
 
 async def handle_user_dashboard(request):
@@ -273,6 +345,13 @@ def create_admin_app():
     app.router.add_post("/api/remove-url", handle_remove_url)
     app.router.add_post("/api/remove-user", handle_remove_user)
     app.router.add_post("/api/clear-logs", handle_clear_logs)
+
+    # Proxy management routes
+    app.router.add_get("/api/proxy", handle_proxy_status)
+    app.router.add_post("/api/proxy/toggle", handle_proxy_toggle)
+    app.router.add_post("/api/proxy/add", handle_proxy_add)
+    app.router.add_post("/api/proxy/remove", handle_proxy_remove)
+    app.router.add_post("/api/proxy/clear", handle_proxy_clear)
 
     # User dashboard routes (public, token-based auth)
     app.router.add_get("/dashboard", handle_user_dashboard)

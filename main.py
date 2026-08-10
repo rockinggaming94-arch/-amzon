@@ -151,7 +151,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "📌 *Quick Start:*\n"
         "Send `/add` \\+ Amazon product URL\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🎮 _Made by Proofy Gamerz_"
     )
     await update.message.reply_text(
         welcome_message,
@@ -710,7 +711,6 @@ async def run():
     # Share state with admin panel
     admin.set_shared_state("bot_start_time", BOT_START_TIME)
     admin.set_shared_state("check_interval", CHECK_INTERVAL)
-    admin.set_shared_state("proxy_count", len(scraper._PROXY_POOL) if hasattr(scraper, '_PROXY_POOL') else 0)
 
     # Build the Telegram bot application
     application = Application.builder().token(BOT_TOKEN).build()
