@@ -5,6 +5,8 @@ import asyncio
 import random
 import logging
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
+
+import aiohttp
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
@@ -38,6 +40,81 @@ STAGGER_DELAY = (0.5, 2.0) # random delay between checks to avoid throttling
 # Track bot start time for /status
 BOT_START_TIME = None
 LAST_CHECK_TIME = None
+
+# Global reference to the Telegram application (for runtime interval changes)
+_application = None
+
+
+def update_check_interval(new_interval_seconds):
+    """
+    Update the CHECK_INTERVAL at runtime and reschedule the repeating job.
+    Called from admin.py when the admin changes the interval.
+    """
+    global CHECK_INTERVAL
+    CHECK_INTERVAL = new_interval_seconds
+    admin.set_shared_state("check_interval", CHECK_INTERVAL)
+
+    if _application and _application.job_queue:
+        # Remove existing stock_checker job(s)
+        existing_jobs = _application.job_queue.get_jobs_by_name("stock_checker")
+        for job in existing_jobs:
+            job.schedule_removal()
+
+        # Schedule a new one with the updated interval
+        _application.job_queue.run_repeating(
+            scheduled_stock_check,
+            interval=CHECK_INTERVAL,
+            first=10,  # start the next check in 10 seconds
+            name="stock_checker"
+        )
+        logger.info(f"⏱️ Check interval updated to {CHECK_INTERVAL}s ({CHECK_INTERVAL // 60}min)")
+        admin.log_activity("info", f"Check interval changed to {CHECK_INTERVAL // 60} minutes")
+
+
+# ─── Amazon Short-URL Domains ────────────────────────────────────────────────
+
+AMAZON_SHORT_DOMAINS = ["amzn.in", "amzn.to", "amzn.eu", "amzn.asia", "a.co"]
+
+
+async def resolve_short_url(url):
+    """
+    Resolve an Amazon shortened URL (amzn.in, amzn.to, a.co, etc.)
+    by following redirects to get the final Amazon product URL.
+    Returns the resolved URL, or None if resolution fails.
+    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.head(
+                url,
+                allow_redirects=True,
+                timeout=aiohttp.ClientTimeout(total=10),
+                headers={"User-Agent": "Mozilla/5.0"}
+            ) as resp:
+                final_url = str(resp.url)
+                return final_url
+    except Exception as e:
+        logger.warning(f"Failed to resolve short URL {url}: {e}")
+        # Fallback: try GET if HEAD didn't work
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    url,
+                    allow_redirects=True,
+                    timeout=aiohttp.ClientTimeout(total=10),
+                    headers={"User-Agent": "Mozilla/5.0"}
+                ) as resp:
+                    final_url = str(resp.url)
+                    return final_url
+        except Exception as e2:
+            logger.error(f"Failed to resolve short URL (GET fallback) {url}: {e2}")
+            return None
+
+
+def is_amazon_short_url(url):
+    """Check if a URL is an Amazon shortened link."""
+    parsed = urlparse(url)
+    hostname = parsed.netloc.lower()
+    return any(hostname == domain or hostname.endswith("." + domain) for domain in AMAZON_SHORT_DOMAINS)
 
 
 # ─── URL Normalization ────────────────────────────────────────────────────────
@@ -93,6 +170,10 @@ def validate_amazon_url(url):
     """Validate that the URL is a legitimate Amazon product URL."""
     parsed = urlparse(url)
     hostname = parsed.netloc.lower()
+
+    # Allow Amazon short-link domains (they'll be resolved before normalization)
+    if is_amazon_short_url(url):
+        return True, None
 
     # Must be an amazon domain
     if not any(domain in hostname for domain in ["amazon.com", "amazon.in", "amazon.co.uk",
@@ -176,6 +257,22 @@ async def add_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     raw_url = context.args[0].strip()
+
+    # Resolve Amazon short URLs (amzn.in, amzn.to, a.co, etc.)
+    if is_amazon_short_url(raw_url):
+        await update.message.reply_text("🔗 Resolving shortened link...")
+        resolved = await resolve_short_url(raw_url)
+        if resolved:
+            raw_url = resolved
+            logger.info(f"Resolved short URL to: {raw_url}")
+        else:
+            await update.message.reply_text(
+                "❌ Couldn't resolve this shortened link.\n\n"
+                "Please try pasting the full Amazon product URL instead.\n"
+                "Example: `https://www.amazon.in/dp/B0815XFSGK`",
+                parse_mode="Markdown"
+            )
+            return
 
     # Validate
     is_valid, error_msg = validate_amazon_url(raw_url)
@@ -714,6 +811,10 @@ async def run():
 
     # Build the Telegram bot application
     application = Application.builder().token(BOT_TOKEN).build()
+
+    # Store global reference for runtime interval changes
+    global _application
+    _application = application
 
     # Register command handlers
     application.add_handler(CommandHandler("start", start))

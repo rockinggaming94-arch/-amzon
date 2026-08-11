@@ -287,6 +287,29 @@ async def handle_proxy_clear(request):
     return web.json_response({"success": True, "removed": count})
 
 
+async def handle_update_interval(request):
+    """Admin action: update check interval in seconds."""
+    if not _verify_token(request):
+        return web.json_response({"error": "Unauthorized"}, status=401)
+
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    interval = data.get("interval")
+    try:
+        interval_seconds = int(interval)
+        if interval_seconds < 10:
+            return web.json_response({"error": "Interval must be at least 10 seconds"}, status=400)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid interval value"}, status=400)
+
+    import main
+    main.update_check_interval(interval_seconds)
+    return web.json_response({"success": True, "check_interval": interval_seconds})
+
+
 # ─── User Dashboard Routes ───────────────────────────────────────────────────
 
 async def handle_user_dashboard(request):
@@ -352,6 +375,9 @@ def create_admin_app():
     app.router.add_post("/api/proxy/add", handle_proxy_add)
     app.router.add_post("/api/proxy/remove", handle_proxy_remove)
     app.router.add_post("/api/proxy/clear", handle_proxy_clear)
+
+    # Settings routes
+    app.router.add_post("/api/settings/interval", handle_update_interval)
 
     # User dashboard routes (public, token-based auth)
     app.router.add_get("/dashboard", handle_user_dashboard)

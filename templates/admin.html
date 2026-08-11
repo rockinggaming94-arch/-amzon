@@ -1030,6 +1030,38 @@
             </div>
         </div>
 
+        <!-- Check Interval Settings Panel -->
+        <div class="proxy-panel animate-in" style="animation-delay: 0.31s" id="settings-panel">
+            <div class="proxy-header">
+                <div class="proxy-header-left">
+                    <h2>⏱️ Check Interval Settings</h2>
+                </div>
+                <span class="proxy-status-badge on" id="current-interval-badge">Every 2 min</span>
+            </div>
+            <div class="proxy-body">
+                <div style="margin-bottom: 12px; font-size: 0.85rem; color: var(--text-secondary);">
+                    Set how often the bot scans Amazon for stock updates:
+                </div>
+                <div class="proxy-add-row" style="margin-bottom: 12px;">
+                    <input type="number" id="interval-input" placeholder="Value (e.g. 2)" min="1" value="2" style="max-width: 140px;">
+                    <select id="interval-unit" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-primary); padding: 10px; font-size: 0.82rem; outline: none; cursor: pointer;">
+                        <option value="60" style="background: var(--bg-secondary); color: var(--text-primary);">Minutes</option>
+                        <option value="1" style="background: var(--bg-secondary); color: var(--text-primary);">Seconds</option>
+                    </select>
+                    <button class="btn-add" onclick="saveCheckInterval()">⚡ Save Interval</button>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                    <span style="font-size: 0.78rem; color: var(--text-muted); margin-right: 4px;">Quick Presets:</span>
+                    <button class="btn btn-secondary" onclick="setPresetInterval(30)" style="padding: 4px 10px; font-size: 0.75rem;">30s</button>
+                    <button class="btn btn-secondary" onclick="setPresetInterval(60)" style="padding: 4px 10px; font-size: 0.75rem;">1 min</button>
+                    <button class="btn btn-secondary" onclick="setPresetInterval(120)" style="padding: 4px 10px; font-size: 0.75rem;">2 min</button>
+                    <button class="btn btn-secondary" onclick="setPresetInterval(300)" style="padding: 4px 10px; font-size: 0.75rem;">5 min</button>
+                    <button class="btn btn-secondary" onclick="setPresetInterval(600)" style="padding: 4px 10px; font-size: 0.75rem;">10 min</button>
+                    <button class="btn btn-secondary" onclick="setPresetInterval(900)" style="padding: 4px 10px; font-size: 0.75rem;">15 min</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Proxy Management Panel -->
         <div class="proxy-panel animate-in" style="animation-delay: 0.32s" id="proxy-panel">
             <div class="proxy-header">
@@ -1190,6 +1222,13 @@
         return `${h}h ${m % 60}m ago`;
     }
 
+    function formatIntervalLabel(seconds) {
+        if (!seconds) return '--';
+        if (seconds < 60) return `${seconds}s`;
+        const mins = seconds / 60;
+        return mins === 1 ? '1 min' : `${mins % 1 === 0 ? mins : mins.toFixed(1)} min`;
+    }
+
     async function fetchStats() {
         try {
             const data = await api('GET', '/api/stats');
@@ -1201,9 +1240,13 @@
             document.getElementById('stat-last-check').textContent = `Last check: ${formatTimeAgo(data.last_check_ago)}`;
             document.getElementById('stat-proxies').textContent = data.proxy_count;
 
+            const intervalText = formatIntervalLabel(data.check_interval);
+            const intervalBadge = document.getElementById('current-interval-badge');
+            if (intervalBadge) intervalBadge.textContent = `Every ${intervalText}`;
+
             // Update proxy status in stat card
             if (data.proxy_enabled) {
-                document.getElementById('stat-proxy-status').textContent = `✅ Enabled · Every ${Math.floor(data.check_interval / 60)}min`;
+                document.getElementById('stat-proxy-status').textContent = `✅ Enabled · Every ${intervalText}`;
             } else {
                 document.getElementById('stat-proxy-status').textContent = `⚡ Direct IP (no proxy)`;
             }
@@ -1477,6 +1520,43 @@
             fetchStats();
         } catch (e) {
             showToast('Failed to clear proxies', 'error');
+        }
+    }
+
+    // ─── Check Interval Settings ────────────────────────────────────
+    async function saveCheckInterval() {
+        const inputEl = document.getElementById('interval-input');
+        const unitEl = document.getElementById('interval-unit');
+        const val = parseInt(inputEl.value, 10);
+        const unit = parseInt(unitEl.value, 10);
+
+        if (isNaN(val) || val <= 0) {
+            showToast('Enter a valid interval number', 'error');
+            return;
+        }
+
+        const totalSeconds = val * unit;
+        if (totalSeconds < 10) {
+            showToast('Minimum interval is 10 seconds', 'error');
+            return;
+        }
+
+        try {
+            const data = await api('POST', '/api/settings/interval', { interval: totalSeconds });
+            showToast(`⏱️ Check interval updated to ${formatIntervalLabel(totalSeconds)}`);
+            fetchStats();
+        } catch (e) {
+            showToast(e.message || 'Failed to update interval', 'error');
+        }
+    }
+
+    async function setPresetInterval(totalSeconds) {
+        try {
+            const data = await api('POST', '/api/settings/interval', { interval: totalSeconds });
+            showToast(`⏱️ Check interval set to ${formatIntervalLabel(totalSeconds)}`);
+            fetchStats();
+        } catch (e) {
+            showToast(e.message || 'Failed to update interval', 'error');
         }
     }
 </script>
